@@ -30,13 +30,3 @@ class displayVideo():
         print(img)
         time.sleep(1)
         """
-    
-    def display(self, path):
-        cap = cv2.VideoCapture(path)
-
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if ret == True:
-                self.process_frame(frame)
-            else:
-                break
