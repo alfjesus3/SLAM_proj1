@@ -1,3 +1,6 @@
 .vscode
 files
 __pycache__/
+build
+*.swp
+*.pyc
