@@ -88,11 +88,14 @@ def extract_Rot_trans(essen):
 
 
 class Frame(object):
-    def __init__(self, img, T):
+    def __init__(self, mapp, img, T):
         self.T = T
         self.Tinv = np.linalg.inv(self.T)
         self.img = img
         self.pose = np.eye(4)
+
+        self.id = len(mapp.frames)
+        mapp.frames.append(self)
         
         pts, self.des = extract_features_frame(img)
         self.pts = normalize_pts(pts, self.T)
@@ -101,10 +104,12 @@ class Frame(object):
 
 class Point3d(object):
     # It represents a 3d point obtain through the triangulation procedure
-    def __init__(self, loc):
+    def __init__(self, mapp, loc):
         self.location = loc
         self.frames = []
         self.idxs = []
+        self.id = len(mapp.points)
+        mapp.points.append(self)
 
     def add_frame_observation(self, frame, idx):
         self.frames.append(frame)
