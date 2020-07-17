@@ -1,4 +1,4 @@
-#!./usr/bin/env python3
+#! /usr/bin/env python
 from features_extractor import match_frames, denormalize_pt, Frame, Point3d
 from graph_builder import Map
 from display import displayVideo
@@ -6,7 +6,7 @@ import cv2
 import math
 import numpy as np
 
-import build.g2o
+import g2o
 
 
 def triangulate_projections(m1, m2, pt1, pt2):
@@ -28,7 +28,6 @@ def process_frame(frame, mapp):
                                     f1.pts[idx1], 
                                     f2.pts[idx2])
     pts4d /= pts4d[:, 3:]
-            
     # rejecting points behind the camera
     good_pts4 = (pts4d[:, 2] > 0)
     
@@ -39,6 +38,7 @@ def process_frame(frame, mapp):
         pt.add_frame_observation(f1, idx1[i])
         pt.add_frame_observation(f2, idx2[i])
 
+    
     for pt1, pt2 in zip(f1.pts[idx1], f2.pts[idx2]):
         u1, v1 = map(lambda x: int(round(x)), pt1)
         u2, v2 = map(lambda x: int(round(x)), pt2)
@@ -48,15 +48,16 @@ def process_frame(frame, mapp):
         cv2.line(frame.img, (u1, v1), (u2, v2), color=(255,0,0))                    
 
     mapp.display_map()
-    dp.process_frame(frame.img)
+    if dp is not None:
+        dp.process_frame(frame.img)
 
 
 if __name__ == "__main__":
-    cap = cv2.VideoCapture('./files/video.mp4')
+    cap = cv2.VideoCapture('./files/drivingCar.mp4')
 
     mapp = Map()
 
-    dp = displayVideo()
+    dp = displayVideo() if os.getenv("DVid") is not None else None
 
     W = 1920 // 2
     H = 1080 // 2
@@ -72,4 +73,4 @@ if __name__ == "__main__":
             frame = Frame(mapp, img, T)
             process_frame(frame, mapp)
         else:
-            break    
+            break

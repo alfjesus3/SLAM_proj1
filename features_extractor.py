@@ -48,21 +48,19 @@ def match_frames(img1, img2):
     idx2 = np.array(idx2)
 
     Rt = None
-    print(len(res))
     res[:, 0, :] = normalize_pts(res[:, 0, :], img1.T)
     res[:, 1, :] = normalize_pts(res[:, 1, :], img1.T)
-
+    
     model, inliers = ransac((res[:, 0], res[:, 1]),
                             EssentialMatrixTransform, 
-                            min_samples = 8, 
-                            residual_threshold=.15, 
-                            max_trials = 100)
+                            min_samples = 80, 
+                            residual_threshold=.1, 
+                            max_trials = 250)
 
     res = res[inliers]
+    print(len(res))
     Rt = extract_Rot_trans(model.params)
 
-    print(len(res))
-    print(">>>>>>>>>>")
 
     return idx1[inliers], idx2[inliers], Rt
 
@@ -70,10 +68,11 @@ def match_frames(img1, img2):
 def extract_Rot_trans(essen):
     W = np.mat([[0,-1,0], [1,0,0], [0,0,1]], dtype = float)
     U, d, Vt = np.linalg.svd(essen)
-
+    print(d)
     assert np.linalg.det(U) > 0
     if np.linalg.det(Vt) < 0:
-        Vt *= -1.0
+       Vt *= -1.0
+       #Vt[:,2] = Vt[:,2] * -1.0
     R = np.dot(np.dot(U,W), Vt) # rot 1
 
     if np.sum(R.diagonal()) < 0:
