@@ -53,8 +53,8 @@ def match_frames(img1, img2):
     
     model, inliers = ransac((res[:, 0], res[:, 1]),
                             EssentialMatrixTransform, 
-                            min_samples = 80, 
-                            residual_threshold=.1, 
+                            min_samples = 8, 
+                            residual_threshold=.005, 
                             max_trials = 250)
 
     res = res[inliers]

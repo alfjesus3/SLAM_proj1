@@ -5,7 +5,7 @@ from display import displayVideo
 import cv2
 import math
 import numpy as np
-
+import os
 import g2o
 
 
@@ -42,8 +42,8 @@ def process_frame(frame, mapp):
     for pt1, pt2 in zip(f1.pts[idx1], f2.pts[idx2]):
         u1, v1 = map(lambda x: int(round(x)), pt1)
         u2, v2 = map(lambda x: int(round(x)), pt2)
-        u1, v1 = denormalize_pt((u1,v1), T)
-        u2, v2 = denormalize_pt((u2,v2), T)
+        u1, v1 = denormalize_pt((u1,v1), K)
+        u2, v2 = denormalize_pt((u2,v2), K)
         cv2.circle(frame.img, (u1,v1), color = (40, 255, 0), radius = 3)
         cv2.line(frame.img, (u1, v1), (u2, v2), color=(255,0,0))                    
 
@@ -53,7 +53,7 @@ def process_frame(frame, mapp):
 
 
 if __name__ == "__main__":
-    cap = cv2.VideoCapture('./files/drivingCar.mp4')
+    cap = cv2.VideoCapture('./files/drivingCar.mp4') # video.mp4
 
     mapp = Map()
 
@@ -62,15 +62,18 @@ if __name__ == "__main__":
     W = 1920 // 2
     H = 1080 // 2
 
+    """
     d=1
     cons = math.sqrt(2)/d
-    T = np.array([[cons, 0, -W*cons], [0, cons, -H*cons], [0, 0, 1]])
-    
+    T = np.array([[cons, 0, W*cons], [0, cons, H*cons], [0, 0, 1]])
+    """
+    F = 270
+    K = np.array([[F,0, W//2], [0, F, H//2], [0,0,1]])
     while cap.isOpened():
         ret, frame = cap.read()
         if ret == True:
             img = cv2.resize(frame, (W,H))
-            frame = Frame(mapp, img, T)
+            frame = Frame(mapp, img, K)
             process_frame(frame, mapp)
         else:
             break
