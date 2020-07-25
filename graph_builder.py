@@ -29,7 +29,7 @@ class Map(object):
          # Define Projection and initial ModelView matrix
         self.scam = pangolin.OpenGlRenderState(
             pangolin.ProjectionMatrix(640, 480, 420, 420, 320, 240, 0.2, 100),
-            pangolin.ModelViewLookAt(10, 20, 20, 0, 0, 0, pangolin.AxisDirection.AxisY))
+            pangolin.ModelViewLookAt(10, 10, -10, 0, 0, 0, pangolin.AxisDirection.AxisY))
         self.handler = pangolin.Handler3D(self.scam)
 
         # Create Interactive View in window

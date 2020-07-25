@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-from features_extractor import match_frames, denormalize_pt, Frame, Point3d
+from features_extractor import match_frames, denormalize_pts, Frame, Point3d
 from graph_builder import Map
 from display import displayVideo
 import cv2
@@ -29,7 +29,7 @@ def process_frame(frame, mapp):
                                     f2.pts[idx2])
     pts4d /= pts4d[:, 3:]
     # rejecting points behind the camera
-    good_pts4 = (pts4d[:, 2] > 0)
+    good_pts4 = ((pts4d[:, 2] > 0) & (np.abs(pts4d[:, 3]) > 0.005))
     
     for i, p in enumerate(pts4d):
         if not good_pts4[i]:
@@ -42,8 +42,8 @@ def process_frame(frame, mapp):
     for pt1, pt2 in zip(f1.pts[idx1], f2.pts[idx2]):
         u1, v1 = map(lambda x: int(round(x)), pt1)
         u2, v2 = map(lambda x: int(round(x)), pt2)
-        u1, v1 = denormalize_pt((u1,v1), K)
-        u2, v2 = denormalize_pt((u2,v2), K)
+        #u1, v1 = denormalize_pt((u1,v1), f1.T)
+        #u2, v2 = denormalize_pt((u2,v2), f2.T)
         cv2.circle(frame.img, (u1,v1), color = (40, 255, 0), radius = 3)
         cv2.line(frame.img, (u1, v1), (u2, v2), color=(255,0,0))                    
 
@@ -61,19 +61,12 @@ if __name__ == "__main__":
 
     W = 1920 // 2
     H = 1080 // 2
-
-    """
-    d=1
-    cons = math.sqrt(2)/d
-    T = np.array([[cons, 0, W*cons], [0, cons, H*cons], [0, 0, 1]])
-    """
-    F = 270
-    K = np.array([[F,0, W//2], [0, F, H//2], [0,0,1]])
+    
     while cap.isOpened():
         ret, frame = cap.read()
         if ret == True:
             img = cv2.resize(frame, (W,H))
-            frame = Frame(mapp, img, K)
+            frame = Frame(mapp, img)
             process_frame(frame, mapp)
         else:
             break

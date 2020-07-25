@@ -1,4 +1,5 @@
 import cv2
+import math
 import numpy as np
 from skimage.measure import ransac
 from skimage.transform import EssentialMatrixTransform
@@ -8,13 +9,31 @@ def addExtraCoord(pts):
     return np.concatenate([pts, np.ones((pts.shape[0],1))], axis=1)
 
 def normalize_pts(pts, T):
-    transPt = addExtraCoord(pts)
-    return np.dot(np.linalg.inv(T), np.transpose(transPt)).T[:, 0:2]
+    transPts = addExtraCoord(pts)
+    return np.dot(T, np.transpose(transPts)).T[:, 0:2]
 
-def denormalize_pt(pt, T):
-    cords = np.dot(T, np.array([pt[0], pt[1], 1]))
-    cords = cords/ cords[2]
-    return int(round(cords[0])), int(round(cords[1]))
+def denormalize_pts(pts, T):
+    transPts = np.dot(T, addExtraCoord(pts).T)
+    transPts = transPts / transPts[2]
+    return transPts.T[0:2]
+
+def computeT(pts):
+    tmpX = tmpY = 0
+    for x,y in pts:
+        tmpX += x
+        tmpY += y
+        
+    centroid = (tmpX / len(pts), tmpY / len(pts))
+
+    d=0
+    for x,y in pts:
+        d += math.sqrt(math.pow(x-centroid[0],2) + math.pow(y-centroid[1],2))
+    d /= (len(pts))
+
+    cons = math.sqrt(2)/d
+    T  = np.array([[cons, 0, centroid[0]*cons], [0, cons, centroid[1]*cons], [0, 0, 1]])
+
+    return T
 
 orb = cv2.ORB_create() 
 bf = cv2.BFMatcher(cv2.NORM_HAMMING) 
@@ -26,6 +45,7 @@ def extract_features_frame(img):
                                         minDistance = 3)
     keypts = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in features]
     keypts, descrip = orb.compute(img, keypts)
+
     return np.array([(kpt.pt[0], kpt.pt[1]) for kpt in keypts]), descrip
 
 def match_frames(img1, img2):
@@ -48,31 +68,35 @@ def match_frames(img1, img2):
     idx2 = np.array(idx2)
 
     Rt = None
-    res[:, 0, :] = normalize_pts(res[:, 0, :], img1.T)
-    res[:, 1, :] = normalize_pts(res[:, 1, :], img1.T)
+    T1 = computeT(res[:,0])
+    T2 = computeT(res[:,1])
+    res[:, 0, :] = normalize_pts(res[:, 0, :], T1)
+    res[:, 1, :] = normalize_pts(res[:, 1, :], T2)
     
     model, inliers = ransac((res[:, 0], res[:, 1]),
                             EssentialMatrixTransform, 
                             min_samples = 8, 
                             residual_threshold=.005, 
-                            max_trials = 250)
-
+                            max_trials = 200)
+    
     res = res[inliers]
-    print(len(res))
-    Rt = extract_Rot_trans(model.params)
+    #print(len(res))
+
+    fundM = model.params
+    #essenM = np.dot(T2.T, (np.dot(essenM, T1))) #Denormalize Essential Matrix Estimation
+    Rt = extract_Rot_trans(fundM)
 
 
     return idx1[inliers], idx2[inliers], Rt
 
 
-def extract_Rot_trans(essen):
+def extract_Rot_trans(fund):
     W = np.mat([[0,-1,0], [1,0,0], [0,0,1]], dtype = float)
-    U, d, Vt = np.linalg.svd(essen)
-    print(d)
+    U, d, Vt = np.linalg.svd(fund)
+    
     assert np.linalg.det(U) > 0
     if np.linalg.det(Vt) < 0:
        Vt *= -1.0
-       #Vt[:,2] = Vt[:,2] * -1.0
     R = np.dot(np.dot(U,W), Vt) # rot 1
 
     if np.sum(R.diagonal()) < 0:
@@ -87,18 +111,14 @@ def extract_Rot_trans(essen):
 
 
 class Frame(object):
-    def __init__(self, mapp, img, T):
-        self.T = T
-        self.Tinv = np.linalg.inv(self.T)
+    def __init__(self, mapp, img):
         self.img = img
         self.pose = np.eye(4)
 
         self.id = len(mapp.frames)
         mapp.frames.append(self)
         
-        pts, self.des = extract_features_frame(img)
-        self.pts = normalize_pts(pts, self.T)
-
+        self.pts, self.des = extract_features_frame(img)
 
 
 class Point3d(object):
