@@ -10,30 +10,12 @@ def addExtraCoord(pts):
 
 def normalize_pts(pts, T):
     transPts = addExtraCoord(pts)
-    return np.dot(T, np.transpose(transPts)).T[:, 0:2]
+    return np.dot(np.linalg.inv(T), np.transpose(transPts)).T[:, 0:2]
 
-def denormalize_pts(pts, T):
-    transPts = np.dot(T, addExtraCoord(pts).T)
-    transPts = transPts / transPts[2]
-    return transPts.T[0:2]
-
-def computeT(pts):
-    tmpX = tmpY = 0
-    for x,y in pts:
-        tmpX += x
-        tmpY += y
-        
-    centroid = (tmpX / len(pts), tmpY / len(pts))
-
-    d=0
-    for x,y in pts:
-        d += math.sqrt(math.pow(x-centroid[0],2) + math.pow(y-centroid[1],2))
-    d /= (len(pts))
-
-    cons = math.sqrt(2)/d
-    T  = np.array([[cons, 0, centroid[0]*cons], [0, cons, centroid[1]*cons], [0, 0, 1]])
-
-    return T
+def denormalize_pt(pt, T):
+    transPt = np.dot(T, np.array([pt[0], pt[1], 1]).T) 
+    transPt = transPt / transPt[2]
+    return int(round(transPt[0])), int(round(transPt[1]))
 
 orb = cv2.ORB_create() 
 bf = cv2.BFMatcher(cv2.NORM_HAMMING) 
@@ -62,16 +44,12 @@ def match_frames(img1, img2):
             keypts1 = img1.pts[m.queryIdx]
             keypts2 = img2.pts[m.trainIdx]
             res.append((keypts1, keypts2))
-    
+    assert len(res) >= 8
     res = np.array(res)
     idx1 = np.array(idx1)
     idx2 = np.array(idx2)
 
     Rt = None
-    T1 = computeT(res[:,0])
-    T2 = computeT(res[:,1])
-    res[:, 0, :] = normalize_pts(res[:, 0, :], T1)
-    res[:, 1, :] = normalize_pts(res[:, 1, :], T2)
     
     model, inliers = ransac((res[:, 0], res[:, 1]),
                             EssentialMatrixTransform, 
@@ -80,12 +58,10 @@ def match_frames(img1, img2):
                             max_trials = 200)
     
     res = res[inliers]
-    #print(len(res))
+    print(len(res))
 
-    fundM = model.params
-    #essenM = np.dot(T2.T, (np.dot(essenM, T1))) #Denormalize Essential Matrix Estimation
-    Rt = extract_Rot_trans(fundM)
-
+    essenM = model.params
+    Rt = extract_Rot_trans(essenM) 
 
     return idx1[inliers], idx2[inliers], Rt
 
@@ -111,26 +87,15 @@ def extract_Rot_trans(fund):
 
 
 class Frame(object):
-    def __init__(self, mapp, img):
+    def __init__(self, mapp, img, T):
         self.img = img
         self.pose = np.eye(4)
+        self.T = T
 
         self.id = len(mapp.frames)
         mapp.frames.append(self)
         
-        self.pts, self.des = extract_features_frame(img)
+        pts, self.des = extract_features_frame(img)
+        self.pts = normalize_pts(pts, self.T)
 
-
-class Point3d(object):
-    # It represents a 3d point obtain through the triangulation procedure
-    def __init__(self, mapp, loc):
-        self.location = loc
-        self.frames = []
-        self.idxs = []
-        self.id = len(mapp.points)
-        mapp.points.append(self)
-
-    def add_frame_observation(self, frame, idx):
-        self.frames.append(frame)
-        self.idxs.append(idx)
 
