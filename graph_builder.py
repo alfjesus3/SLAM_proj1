@@ -4,10 +4,6 @@ import numpy as np
 import OpenGL.GL as gl
 import pangolin
 
-"""
-import sys
-sys.path.append('./pangolin.cpython-36m-x86_64-linux-gnu.so')
-"""
 
 class Point3d(object):
     # It represents a 3d point obtain through the triangulation procedure
@@ -40,7 +36,7 @@ class Map(object):
         
          # Define Projection and initial ModelView matrix
         self.scam = pangolin.OpenGlRenderState(
-            pangolin.ProjectionMatrix(640, 480, 420, 420, 320, 240, 0.2, 100),
+            pangolin.ProjectionMatrix(640, 480, 420, 420, 320, 240, 0.2, 1000),
             pangolin.ModelViewLookAt(0, -10, -8, 0, 0, 0, 0, -1, 0))
         self.handler = pangolin.Handler3D(self.scam)
 
@@ -57,27 +53,27 @@ class Map(object):
 
     def render_map(self, q):
         if (self.currState is None) or (not q.empty()):
-            self.currState = self.q.get()
+            self.currState = q.get()
             
-            # Extract points and poses
-            pts = np.array(self.currState[1])
-            
-            gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-            gl.glClearColor(1.0, 1.0, 1.0, 1.0)
-            self.dcam.Activate(self.scam)
+        # Extract points and poses
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+        gl.glClearColor(1.0, 1.0, 1.0, 1.0)
+        self.dcam.Activate(self.scam)
 
-            #gl.glPointSize(10)
-            gl.glColor3f(1.0, 0.0, 0.0)
-            pangolin.DrawCameras(self.currState[0])
+        # Draw poses
+        #gl.glPointSize(10)
+        gl.glColor3f(1.0, 0.0, 0.0)
+        pangolin.DrawCameras(self.currState[0])
+        
+        # Draw points
+        gl.glPointSize(2)
+        gl.glColor3f(0.0, 1.0, 0.0)
+        pangolin.DrawPoints(self.currState[1])
 
-            gl.glPointSize(2)
-            gl.glColor3f(0.0, 1.0, 0.0)
-            pangolin.DrawPoints(pts)
-
-            pangolin.FinishFrame()
+        pangolin.FinishFrame()
 
 
-    def display_map(self):
+    def display(self):
         poses, points = [], []
         
         for f in self.frames:
@@ -86,4 +82,4 @@ class Map(object):
         for p in self.points:
             points.append(p.location)
 
-        self.q.put((poses, points))
+        self.q.put((np.array(poses), np.array(points)))
