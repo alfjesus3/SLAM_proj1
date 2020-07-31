@@ -10,11 +10,10 @@ import g2o
 
 W = 1920 // 2
 H = 1080 // 2
-F = int(os.getenv("F")) if not None else 270
+F = int(os.getenv("F")) if os.getenv("F") is not None else 270
 K = np.array([[F,0,W//2],[0,F,H//2],[0,0,1]])
 
 def triangulate_projections(m1, m2, pt1, pt2):
-    #return cv2.triangulatePoints(m1[:3], m2[:3], pt1.T, pt2.T).T
     ret = np.zeros((pt1.shape[0], 4))
     pose1 = np.linalg.inv(m1)
     pose2 = np.linalg.inv(m2)
