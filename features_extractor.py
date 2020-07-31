@@ -58,7 +58,7 @@ def match_frames(img1, img2):
                             max_trials = 200)
     
     res = res[inliers]
-    print(len(res))
+    #print(len(res))
 
     essenM = model.params
     Rt = extract_Rot_trans(essenM) 

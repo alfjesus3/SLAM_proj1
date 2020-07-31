@@ -15,7 +15,7 @@ K = np.array([[F,0,W//2],[0,F,H//2],[0,0,1]])
 
 def triangulate_projections(m1, m2, pt1, pt2):
     #return cv2.triangulatePoints(m1[:3], m2[:3], pt1.T, pt2.T).T
-    ret = np.zeros((pt1.shape[0],4,4))
+    ret = np.zeros((pt1.shape[0], 4))
     pose1 = np.linalg.inv(m1)
     pose2 = np.linalg.inv(m2)
 
@@ -26,9 +26,9 @@ def triangulate_projections(m1, m2, pt1, pt2):
         A[2] = p[1][0] * pose2[2] - pose2[0]
         A[3] = p[1][1] * pose2[2] - pose2[1]
         _,_,vt = np.linalg.svd(A)
-        ret[i] = vt
+        ret[i] = vt[3]
 
-    return vt
+    return ret
 
 def process_frame(frame, mapp):
     if len(mapp.frames) < 2:
@@ -46,9 +46,9 @@ def process_frame(frame, mapp):
                                     f1.pts[idx1], 
                                     f2.pts[idx2])
     pts4d /= pts4d[:, 3:]
+
     # rejecting points behind the camera
     good_pts4 = ((pts4d[:, 2] > 0) & (np.abs(pts4d[:, 3]) > 0.005))
-    
     for i, p in enumerate(pts4d):
         if not good_pts4[i]:
             continue
@@ -63,7 +63,8 @@ def process_frame(frame, mapp):
         cv2.circle(frame.img, (u1,v1), color = (40, 255, 0), radius = 3)
         cv2.line(frame.img, (u1, v1), (u2, v2), color=(255,0,0))                    
 
-    mapp.display_map()
+    #mapp.display_map()
+    mapp.display()
     if dp is not None:
         dp.process_frame(frame.img)
 
