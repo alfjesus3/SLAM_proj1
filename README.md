@@ -1,7 +1,16 @@
 # SLAM_proj1
-This project is based on the twitchslam project by George Hotz (https://github.com/geohot/twitchslam);
+This project is based on the twitchslam project by George Hotz (https://github.com/geohot/twitchslam).
+It is a sparse features based SLAM implementation which was tested in Ubuntu 18.04 LTS.
 
 
+Usage
+-----
+```
+F=500		# Focal length (in pixels)
+Vi!=None	# Visualize the raw input video with SDL2	
+F=500 Vi=1./slam.py 
+
+```
 
 Libraries Used
 -----
