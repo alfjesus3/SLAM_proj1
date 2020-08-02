@@ -1,6 +1,6 @@
 from multiprocessing import Process, Queue
 import numpy as np
-
+import g2o
 import OpenGL.GL as gl
 import pangolin
 
@@ -15,6 +15,7 @@ class Point3d(object):
         mapp.points.append(self)
 
     def add_frame_observation(self, frame, idx):
+        frame.pts[idx] = self
         self.frames.append(frame)
         self.idxs.append(idx)
 
@@ -50,7 +51,6 @@ class Map(object):
         while 1:
                 self.render_map(q)
 
-
     def render_map(self, q):
         if (self.currState is None) or (not q.empty()):
             self.currState = q.get()
@@ -72,7 +72,6 @@ class Map(object):
 
         pangolin.FinishFrame()
 
-
     def display(self):
         poses, points = [], []
         
@@ -83,3 +82,49 @@ class Map(object):
             points.append(p.location)
 
         self.q.put((np.array(poses), np.array(points)))
+
+    ## Optimizer ##
+    def optimize(self, max_iters):
+        opt = g2o.SparseOptimizer()
+        solver = g2o.BlockSolverSE3(g2o.LinearSolverCSparseSE3())
+        solver = g2o.OptimizationAlgorithmLevenberg(solver)
+        opt.set_algorithm(solver)
+        
+        robust_kernel = g2o.RobustKernelHuber(np.sqrt(5.991))
+
+        # adding frames to graph
+        for f in self.frames:
+            sbacam = g2o.SBACam(g2o.SE3Quat(f.pose[0:3, 0:3], f.pose[0:3, 3]))
+            sbacam.set_cam(f.T[0][0], f.T[1][1], f.T[2][0], f.T[2][1], 1.0)
+
+            v_se3 = g2o.VertexCam()
+            v_se3.set_id(f.id)
+            v_se3.set_estimate(sbacam)
+            v_se3.set_fixed(f.id == 0)
+            opt.add_vertex(v_se3)
+        
+        # add points to frames
+        for p in self.points:
+            pt = g2o.VertexSBAPointXYZ()
+            pt.set_id(p.id + 0x10000)
+            pt.set_estimate(p.location[0:3])
+            pt.set_marginalized(True)
+            pt.set_fixed(False)
+            opt.add_vertex(pt)
+
+            # add connections between frames in the graph
+            for f in p.frames:
+                edge = g2o.EdgeProjectP2MC()
+                edge.set_vertex(0, pt)
+                edge.set_vertex(1, opt.vertex(f.id))
+                print(type(f.pts.index(p)), f.pts.index(p))
+                uv = f.kpts[f.pts.index(p)]
+                edge.set_measurement(uv)
+                edge.set_information(np.eye(2))
+                edge.set_robust_kernel(robust_kernel)
+                opt.add_edge(edge)
+
+        opt.set_verbose(True)
+        opt.initialize_optimization()
+        opt.optimizing(max_iters)
+

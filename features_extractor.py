@@ -41,8 +41,8 @@ def match_frames(img1, img2):
             idx1.append(m.queryIdx)
             idx2.append(m.trainIdx)
 
-            keypts1 = img1.pts[m.queryIdx]
-            keypts2 = img2.pts[m.trainIdx]
+            keypts1 = img1.kpts[m.queryIdx]
+            keypts2 = img2.kpts[m.trainIdx]
             res.append((keypts1, keypts2))
     assert len(res) >= 8
     res = np.array(res)
@@ -95,7 +95,7 @@ class Frame(object):
         self.id = len(mapp.frames)
         mapp.frames.append(self)
         
-        pts, self.des = extract_features_frame(img)
-        self.pts = normalize_pts(pts, self.T)
-
+        kpts, self.des = extract_features_frame(img)
+        self.kpts = normalize_pts(kpts, self.T)
+        self.pts = [None] * len(self.kpts)
 
