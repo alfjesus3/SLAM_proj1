@@ -103,7 +103,7 @@ class Map(object):
             v_se3.set_fixed(f.id == 0)
             opt.add_vertex(v_se3)
         
-        # add points to frames
+        # add points to graph
         for p in self.points:
             pt = g2o.VertexSBAPointXYZ()
             pt.set_id(p.id + 0x10000)
@@ -112,12 +112,11 @@ class Map(object):
             pt.set_fixed(False)
             opt.add_vertex(pt)
 
-            # add connections between frames in the graph
+            # add connections between frames that contain a point in the graph
             for f in p.frames:
                 edge = g2o.EdgeProjectP2MC()
                 edge.set_vertex(0, pt)
                 edge.set_vertex(1, opt.vertex(f.id))
-                print(type(f.pts.index(p)), f.pts.index(p))
                 uv = f.kpts[f.pts.index(p)]
                 edge.set_measurement(uv)
                 edge.set_information(np.eye(2))
@@ -126,5 +125,5 @@ class Map(object):
 
         opt.set_verbose(True)
         opt.initialize_optimization()
-        opt.optimizing(max_iters)
+        opt.optimize(max_iters)
 

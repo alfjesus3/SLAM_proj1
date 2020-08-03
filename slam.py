@@ -13,7 +13,7 @@ F = int(os.getenv("F")) if os.getenv("F") is not None else 270
 K = np.array([[F,0,W//2],[0,F,H//2],[0,0,1]])
 
 # Global variables
-cap = cv2.VideoCapture('./files/video.mp4') # video.mp4
+cap = cv2.VideoCapture('./files/drivingCar.mp4')
 dp = displayVideo() if os.getenv("Vi") is not None else None
 mapp = Map()
 
@@ -34,7 +34,7 @@ def triangulate_projections(m1, m2, pt1, pt2):
     return ret
 
 def process_frame(frame, mapp):
-    if len(mapp.frames) < 2:
+    if frame.id == 0:
         return 
 
     f1, f2 = mapp.frames[-1], mapp.frames[-2]
@@ -73,10 +73,10 @@ def process_frame(frame, mapp):
     mapp.display()
     if dp is not None:
         dp.process_frame(frame.img)
-    """
+    
     if frame.id >= 4:
         mapp.optimize(10)
-    """
+    
 
 if __name__ == "__main__": 
     while cap.isOpened():

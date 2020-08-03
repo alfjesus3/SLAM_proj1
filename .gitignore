@@ -5,5 +5,5 @@ build
 *.swp
 *.pyc
 *.so
-todos.txt
 tmp.py
+debug.txt

@@ -37,13 +37,20 @@ def match_frames(img1, img2):
     matches = bf.knnMatch(img1.des, img2.des, k=2)
     for m, n in matches:
         if m.distance < 0.75 * n.distance:
-
-            idx1.append(m.queryIdx)
-            idx2.append(m.trainIdx)
-
             keypts1 = img1.kpts[m.queryIdx]
             keypts2 = img2.kpts[m.trainIdx]
-            res.append((keypts1, keypts2))
+            
+            if np.linalg.norm((keypts1-keypts2)) < 0.1:
+                if m.queryIdx not in idx1 and m.trainIdx not in idx2:
+                    idx1.append(m.queryIdx)
+                    idx2.append(m.trainIdx)
+
+                    res.append((keypts1, keypts2))
+
+    # Check for no duplicated entries
+    assert(len(set(idx1)) == len(idx1))
+    assert(len(set(idx2)) == len(idx2))
+    
     assert len(res) >= 8
     res = np.array(res)
     idx1 = np.array(idx1)
